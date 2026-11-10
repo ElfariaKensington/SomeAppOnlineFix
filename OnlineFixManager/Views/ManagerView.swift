@@ -483,6 +483,15 @@ struct ManagerView: View {
                 try rememberFix(status)
             } catch { errors.append("Cannot verify the PICO PARK 2 fix.\n\(error.localizedDescription)") }
         }
+        if configLoaded, let game = fixGames.first(where: { $0.id == 892970 }), let app = game.nativePatchApp {
+            do {
+                let enabled = try await Task.detached { try ValheimPatch.isEnabled(app: app) }.value
+                var status = fixes.first(where: { $0.id == game.id }) ?? game
+                status.installDirectory = game.installDirectory
+                status.valheimPlayFab = enabled
+                try rememberFix(status)
+            } catch { errors.append("Cannot verify the Valheim fix.\n\(error.localizedDescription)") }
+        }
         if configLoaded, let game = fixGames.first(where: { $0.id == 3241660 }), game.fileFixInstalled, let directory = game.installDirectory {
             do {
                 let ids = try await Task.detached { try RepoPatch.appIDs(directory: directory) }.value
@@ -550,10 +559,13 @@ struct ManagerView: View {
         let enabled = next.contains { $0.id == 105600 && $0.patches.terrariaServerEnvironment }
         let previousPico = fixes.contains { $0.id == 2644470 && $0.picoPark2Photon }
         let enabledPico = next.contains { $0.id == 2644470 && $0.picoPark2Photon }
+        let previousValheim = fixes.contains { $0.id == 892970 && $0.valheimPlayFab }
+        let enabledValheim = next.contains { $0.id == 892970 && $0.valheimPlayFab }
         let previousPhasm: String = fixes.first(where: { $0.id == 739630 })?.phasmophobiaPhotonAppID ?? ""
         let nextPhasm: String = next.first(where: { $0.id == 739630 })?.phasmophobiaPhotonAppID ?? ""
         var changedLauncher: URL?
         var changedPicoApp: URL?
+        var changedValheimApp: URL?
         let previousRepo: RepoPhotonIDs = fixes.first(where: { $0.id == 3241660 })?.repoPhoton ?? RepoPhotonIDs()
         let nextRepo: RepoPhotonIDs = next.first(where: { $0.id == 3241660 })?.repoPhoton ?? RepoPhotonIDs()
         var changedRepoDirectory: URL?
@@ -584,6 +596,15 @@ struct ManagerView: View {
                 let app = directory.appendingPathComponent("pico_park_2.app")
                 try PicoPark2Patch.setEnabled(enabledPico, app: app)
                 changedPicoApp = app
+            }
+            if previousValheim != enabledValheim {
+                guard let directory = library.first(where: { $0.id == 892970 })?.installDirectory
+                    ?? fixes.first(where: { $0.id == 892970 })?.installDirectory else {
+                    throw ManagerError(message: "Install Valheim and refresh the Steam library before changing its PlayFab patch.")
+                }
+                let app = directory.appendingPathComponent("valheim.app")
+                try ValheimPatch.setEnabled(enabledValheim, app: app)
+                changedValheimApp = app
             }
             if previousPhasm != nextPhasm {
                 guard let directory = library.first(where: { $0.id == 739630 })?.installDirectory
@@ -617,6 +638,9 @@ struct ManagerView: View {
                 }
                 if let app = changedPicoApp {
                     try PicoPark2Patch.setEnabled(previousPico, app: app)
+                }
+                if let app = changedValheimApp {
+                    try ValheimPatch.setEnabled(previousValheim, app: app)
                 }
                 if let launcher = changedLauncher {
                     try TerrariaServerPatch.setEnabled(previous, launcher: launcher)

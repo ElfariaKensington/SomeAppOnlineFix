@@ -3,3 +3,4 @@
 #include "gamespecific/pico_park_2.h"
 #include "gamespecific/phasmophobia.h"
 #include "gamespecific/repo.h"
+#include "gamespecific/valheim.h"

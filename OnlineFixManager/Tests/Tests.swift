@@ -61,6 +61,7 @@ import Foundation
         try check(files.loadConfiguration() == migrated)
         try expectFailure { try files.save(GameConfiguration(games: [], fixes: migrated.fixes + migrated.fixes)) }
         try expectFailure { try files.save(GameConfiguration(games: [], fixes: [ManagedGame(id: 413150, name: "Unsupported")])) }
+        try expectFailure { try files.save(GameConfiguration(games: [], fixes: [ManagedGame(id: 413150, name: "Unsupported", valheimPlayFab: true)])) }
         for value in ["null", "false", "{}"] {
             let invalid = "{\"games\":[],\"fixes\":\(value)}"
             try expectFailure { _ = try JSONDecoder().decode(GameConfiguration.self, from: Data(invalid.utf8)) }
@@ -68,15 +69,15 @@ import Foundation
         var relocatedPico = ManagedGame(id: 2644470, name: "PICO PARK 2")
         relocatedPico.installDirectory = temporary.appendingPathComponent("relocated-pico")
         let fixRows = migrated.fixGames(in: [relocatedPico, ManagedGame(id: 413150, name: "Unsupported")])
-        precondition(fixRows.count == 4 && !fixRows.contains(where: { $0.id == 413150 }))
+        precondition(fixRows.count == 5 && !fixRows.contains(where: { $0.id == 413150 }))
         let picoRow = fixRows.first(where: { $0.id == 2644470 })!
         precondition(picoRow.picoPark2Photon && picoRow.installDirectory == relocatedPico.installDirectory)
         precondition(migrated.fixGames(in: []).first(where: { $0.id == 2644470 })?.picoPark2Photon == true)
         let catalog = GameConfiguration(games: []).fixGames(in: [])
-        precondition(catalog.count == 4 && Set(catalog.map(\.id)).count == 4)
+        precondition(catalog.count == 5 && Set(catalog.map(\.id)).count == 5)
         precondition(catalog.allSatisfy { !$0.fileFixInstalled && !$0.hasFileFix })
         // A remembered install path or leftover empty folder does not mean the game is installed.
-        for id: UInt32 in [3241660, 739630] {
+        for id: UInt32 in [3241660, 739630, 892970] {
             var missing = ManagedGame(id: id, name: "Uninstalled game")
             missing.installDirectory = temporary.appendingPathComponent("uninstalled-\(id)")
             let configuration = GameConfiguration(games: [], fixes: [missing])

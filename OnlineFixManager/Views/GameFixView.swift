@@ -55,6 +55,14 @@ struct GameFixView: View {
                         }
                     }
                 }
+                if draft.id == 892970 {
+                    Section("Valheim · macOS") {
+                        Toggle("PlayFab / 480 compatibility fix", isOn: $draft.valheimPlayFab)
+                            .disabled(!supportsNativePatch)
+                        Text("Fixes the 480 launch path and PlayFab login. Quit Valheim before saving. Disabling restores the original DLLs.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
                 if draft.id == 3241660 {
                     Section("R.E.P.O. · Windows / NotProton") {
                         Toggle("Experimental Photon file patch", isOn: $repoEnabled)
@@ -112,7 +120,7 @@ struct GameFixView: View {
             }.formStyle(.grouped)
             Text("Relaunch the game after saving.").font(.caption).foregroundStyle(.secondary)
             HStack {
-                Button("Restore Defaults") { draft.patches.terrariaServerEnvironment = false; draft.picoPark2Photon = false; phasmEnabled = false; phasmAppID = ""; repoEnabled = false }
+                Button("Restore Defaults") { draft.patches.terrariaServerEnvironment = false; draft.picoPark2Photon = false; draft.valheimPlayFab = false; phasmEnabled = false; phasmAppID = ""; repoEnabled = false }
                     .disabled(!game.fileFixInstalled)
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
@@ -125,6 +133,6 @@ struct GameFixView: View {
                 .disabled(!game.fileFixInstalled || (draft.id == 3241660 && repoEnabled && !repoIDs.isValid) || (draft.id == 739630 && phasmEnabled && !PhasmophobiaPatch.validateAppID(phasmAppID.trimmingCharacters(in: .whitespacesAndNewlines))))
                 .keyboardShortcut(.defaultAction)
             }
-        }.padding(24).frame(width: 520, height: [739630, 3241660].contains(draft.id) ? 510 : 400)
+        }.padding(24).frame(width: 520, height: [739630, 3241660].contains(draft.id) ? 510 : (draft.id == 892970 ? 450 : 400))
     }
 }

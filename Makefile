@@ -16,7 +16,7 @@ PHOTON_SOURCE := $(or $(wildcard OnlineFixManager/Models/PhotonServers.local.swi
 MANAGER_SOURCES := $(filter-out OnlineFixManager/Tests/% OnlineFixManager/Models/PhotonServers%.swift,$(wildcard OnlineFixManager/*/*.swift)) $(PHOTON_SOURCE)
 SWIFTFLAGS := -target arm64-apple-macos$(MIN_VER) -swift-version 6 -O -g -parse-as-library -module-cache-path out/swift-module-cache
 SWIFTFLAGS += -import-objc-header src/patch/manager.h
-MANAGER_PATCH_OBJS := out/src/patch/gamespecific/repo.o out/src/patch/gamespecific/terraria_server.o out/src/patch/gamespecific/pico_park_2.o out/src/patch/gamespecific/phasmophobia.o
+MANAGER_PATCH_OBJS := out/src/patch/gamespecific/repo.o out/src/patch/gamespecific/terraria_server.o out/src/patch/gamespecific/pico_park_2.o out/src/patch/gamespecific/phasmophobia.o out/src/patch/gamespecific/valheim.o
 PROFILES := $(wildcard signatures/macos.arm64/*.json)
 
 out/7zip/7zz: scripts/fetch-7zip.sh
@@ -80,7 +80,11 @@ out/test_repo_patch: tests/test_repo_patch.c src/patch/gamespecific/repo.c src/p
 	@mkdir -p out
 	$(CC) $(CFLAGS) tests/test_repo_patch.c -o $@
 
-test: out/test_onlinefix out/test_manager out/test_pico_patch out/test_phasmophobia_patch out/test_repo_patch out/manager.stamp
+out/test_valheim_patch: tests/test_valheim_patch.c src/patch/gamespecific/valheim.c src/patch/gamespecific/valheim.h
+	@mkdir -p out
+	$(CC) $(CFLAGS) tests/test_valheim_patch.c -framework CoreFoundation -o $@
+
+test: out/test_onlinefix out/test_manager out/test_pico_patch out/test_phasmophobia_patch out/test_repo_patch out/test_valheim_patch out/manager.stamp
 	./out/test_manager "$(CURDIR)/out/OnlineFixManager.app/Contents/Resources/runtime" "$(CURDIR)/out/test-manager-config.json"
 	ONLINEFIX_TEST_CONFIG="$(CURDIR)/out/test-manager-config.json" ./out/test_onlinefix
 	bash -n scripts/launch.sh
@@ -90,6 +94,7 @@ test: out/test_onlinefix out/test_manager out/test_pico_patch out/test_phasmopho
 	./out/test_pico_patch
 	./out/test_phasmophobia_patch
 	./out/test_repo_patch
+	./out/test_valheim_patch
 
 clean:
 	rm -rf out build

@@ -234,6 +234,7 @@ struct SteamInstaller: Sendable {
             var updatedFixes = fixes
             var restoredLauncher: URL?
             var restoredPicoApp: URL?
+            var restoredValheimApp: URL?
             var restoredRepoDirectory: URL?
             var restoredPhasmDirectory: URL?
             var settingsChanged = false
@@ -260,6 +261,16 @@ struct SteamInstaller: Sendable {
                     try PicoPark2Patch.setEnabled(false, app: picoApp)
                     restoredPicoApp = picoApp
                     updatedFixes[index].picoPark2Photon = false
+                }
+                if let index = fixes.firstIndex(where: { $0.id == 892970 && $0.valheimPlayFab }) {
+                    guard let directory = try SteamLibrary.scan(root: steamRoot)
+                        .first(where: { $0.id == 892970 })?.installDirectory else {
+                        throw ManagerError(message: "Cannot locate Valheim to restore its PlayFab patch. Reconnect its Steam library and retry uninstalling.")
+                    }
+                    let app = directory.appendingPathComponent("valheim.app")
+                    try ValheimPatch.setEnabled(false, app: app)
+                    restoredValheimApp = app
+                    updatedFixes[index].valheimPlayFab = false
                 }
                 if let index = fixes.firstIndex(where: { $0.id == 739630 && !$0.phasmophobiaPhotonAppID.isEmpty }) {
                     guard let directory = try SteamLibrary.scan(root: steamRoot)
@@ -299,6 +310,9 @@ struct SteamInstaller: Sendable {
                     }
                     if let picoApp = restoredPicoApp {
                         try PicoPark2Patch.setEnabled(true, app: picoApp)
+                    }
+                    if let valheimApp = restoredValheimApp {
+                        try ValheimPatch.setEnabled(true, app: valheimApp)
                     }
                     if let launcher = restoredLauncher { try TerrariaServerPatch.setEnabled(true, launcher: launcher) }
                     if settingsChanged { try files.save(configuration) }

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add a Valheim macOS file fix. It keeps the 480 launch path working past Steam's AppID/restart checks and logs in to PlayFab with a stable custom ID, so OnlineFix routing can reach the main menu. The fix modifies `assembly_valheim.dll` and `PlayFab.dll`, keeps backups, and is installed or restored from the Fix tab.
+
 ## v2.0.0
 
 - CustomFix workflow for installing and managing game-specific fixes directly in Manager.

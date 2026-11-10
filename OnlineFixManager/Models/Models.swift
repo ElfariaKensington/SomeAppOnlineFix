@@ -25,20 +25,28 @@ struct ManagedGame: Codable, Identifiable, Equatable {
     var picoPark2Photon = false
     var phasmophobiaPhotonAppID = ""
     var repoPhoton = RepoPhotonIDs()
+    var valheimPlayFab = false
 
     static let fileFixCatalog = [
         ManagedGame(id: 105600, name: "Terraria"),
         ManagedGame(id: 2644470, name: "PICO PARK 2"),
         ManagedGame(id: 739630, name: "Phasmophobia"),
-        ManagedGame(id: 3241660, name: "R.E.P.O.")
+        ManagedGame(id: 3241660, name: "R.E.P.O."),
+        ManagedGame(id: 892970, name: "Valheim")
     ]
 
     var supportsFileFix: Bool { Self.fileFixCatalog.contains { $0.id == id } }
-    var hasFileFix: Bool { patches.terrariaServerEnvironment || picoPark2Photon || !phasmophobiaPhotonAppID.isEmpty || !repoPhoton.isEmpty }
+    var hasFileFix: Bool { patches.terrariaServerEnvironment || picoPark2Photon || !phasmophobiaPhotonAppID.isEmpty || !repoPhoton.isEmpty || valheimPlayFab }
     var fileFixInstalled: Bool {
         if id == 3241660 {
             guard let installDirectory else { return false }
             return FileManager.default.fileExists(atPath: installDirectory.appendingPathComponent("REPO_Data/Managed/Assembly-CSharp.dll").path)
+        }
+        if id == 892970 {
+            guard let installDirectory else { return false }
+            return ["valheim.app/Contents/Resources/Data/Managed/assembly_valheim.dll",
+                    "valheim.app/Contents/Resources/Data/Managed/PlayFab.dll"]
+                .allSatisfy { FileManager.default.fileExists(atPath: installDirectory.appendingPathComponent($0).path) }
         }
         if id != 739630 { return nativePatchApp != nil }
         guard let installDirectory else { return false }
@@ -52,6 +60,7 @@ struct ManagedGame: Codable, Identifiable, Equatable {
         game.picoPark2Photon = false
         game.phasmophobiaPhotonAppID = ""
         game.repoPhoton = RepoPhotonIDs()
+        game.valheimPlayFab = false
         return game
     }
 
@@ -74,6 +83,9 @@ struct ManagedGame: Codable, Identifiable, Equatable {
         case 2644470:
             bundle = "pico_park_2.app"
             target = "Contents/Frameworks/GameAssembly.dylib"
+        case 892970:
+            bundle = "valheim.app"
+            target = "Contents/Resources/Data/Managed/assembly_valheim.dll"
         default: return nil
         }
         let app = installDirectory.appendingPathComponent(bundle, isDirectory: true)
@@ -112,7 +124,7 @@ extension PatchSettings {
 }
 
 extension ManagedGame {
-    private enum CodingKeys: String, CodingKey { case id, name, keepRealAppID, imageURL, patches, installDirectory, picoPark2Photon, phasmophobiaPhotonAppID, repoPhoton }
+    private enum CodingKeys: String, CodingKey { case id, name, keepRealAppID, imageURL, patches, installDirectory, picoPark2Photon, phasmophobiaPhotonAppID, repoPhoton, valheimPlayFab }
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -125,6 +137,7 @@ extension ManagedGame {
         picoPark2Photon = values.contains(.picoPark2Photon) ? try values.decode(Bool.self, forKey: .picoPark2Photon) : false
         repoPhoton = values.contains(.repoPhoton) ? try values.decode(RepoPhotonIDs.self, forKey: .repoPhoton) : RepoPhotonIDs()
         phasmophobiaPhotonAppID = values.contains(.phasmophobiaPhotonAppID) ? try values.decode(String.self, forKey: .phasmophobiaPhotonAppID) : ""
+        valheimPlayFab = values.contains(.valheimPlayFab) ? try values.decode(Bool.self, forKey: .valheimPlayFab) : false
     }
 }
 
@@ -172,6 +185,7 @@ struct GameConfiguration: Codable, Equatable {
                   Set(list.map(\.id)).count == list.count,
                   list.allSatisfy({ !$0.patches.terrariaServerEnvironment || $0.id == 105600 }),
                   list.allSatisfy({ !$0.picoPark2Photon || $0.id == 2644470 }),
+                  list.allSatisfy({ !$0.valheimPlayFab || $0.id == 892970 }),
                   list.allSatisfy({ $0.repoPhoton.isEmpty || ($0.id == 3241660 && $0.repoPhoton.isValid) }),
                   list.allSatisfy({ $0.phasmophobiaPhotonAppID.isEmpty || ($0.id == 739630 && PhasmophobiaPatch.validateAppID($0.phasmophobiaPhotonAppID)) }) else {
                 throw ManagerError(message: "The game or fix list contains invalid settings or duplicate AppIDs.")
